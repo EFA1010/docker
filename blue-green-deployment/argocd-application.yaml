@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook-blue-green-local
+  namespace: argocd
+  labels:
+    app: guestbook-blue-green-local
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/EFA1010/docker.git
+    targetRevision: HEAD
+    path: blue-green-deployment
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

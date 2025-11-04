@@ -1,0 +1,73 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: guestbook-pod-kill
+  namespace: default
+spec:
+  action: pod-kill
+  mode: one
+  duration: "30s"
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      "app": "guestbook"
+  scheduler:
+    cron: "@every 2m"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: guestbook-blue-pod-kill
+  namespace: default
+spec:
+  action: pod-kill
+  mode: fixed
+  value: "1"
+  duration: "60s"
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      "app": "guestbook"
+      "version": "blue"
+  scheduler:
+    cron: "@every 5m"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: guestbook-green-pod-kill
+  namespace: default
+spec:
+  action: pod-kill
+  mode: fixed
+  value: "1"
+  duration: "60s"
+  selector:
+    namespaces:
+      - default
+    labelSelectors:
+      "app": "guestbook"
+      "version": "green"
+  scheduler:
+    cron: "@every 5m"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: guestbook-chaos-schedule
+  namespace: default
+spec:
+  schedule: "@every 3m"
+  type: "PodChaos"
+  podChaos:
+    action: pod-kill
+    mode: random-max-percent
+    value: "50"
+    duration: "30s"
+    selector:
+      namespaces:
+        - default
+      labelSelectors:
+        "app": "guestbook"

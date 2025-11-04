@@ -1,0 +1,120 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: guestbook-alerts
+  namespace: monitoring
+  labels:
+    app: guestbook
+    release: prometheus
+spec:
+  groups:
+  - name: guestbook.rules
+    rules:
+    - alert: GuestbookHighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total{pod=~"guestbook.*", container="guestbook", namespace="default"}[5m]) * 100 > 80
+      for: 2m
+      labels:
+        severity: warning
+        service: guestbook
+      annotations:
+        summary: "High CPU usage detected for Guestbook pod"
+        description: "Guestbook pod {{ $labels.pod }} has been using more than 80% CPU for more than 2 minutes."
+        
+    - alert: GuestbookHighMemoryUsage
+      expr: container_memory_usage_bytes{pod=~"guestbook.*", container="guestbook", namespace="default"} / 1024 / 1024 > 400
+      for: 2m
+      labels:
+        severity: warning
+        service: guestbook
+      annotations:
+        summary: "High memory usage detected for Guestbook pod"
+        description: "Guestbook pod {{ $labels.pod }} is using more than 400MB of memory."
+        
+    - alert: GuestbookPodNotReady
+      expr: kube_pod_status_ready{condition="false", pod=~"guestbook.*", namespace="default"} == 1
+      for: 1m
+      labels:
+        severity: critical
+        service: guestbook
+      annotations:
+        summary: "Guestbook pod is not ready"
+        description: "Guestbook pod {{ $labels.pod }} has been not ready for more than 1 minute."
+        
+    - alert: GuestbookHighRestartRate
+      expr: increase(kube_pod_container_status_restarts_total{pod=~"guestbook.*", namespace="default"}[1h]) > 3
+      for: 0m
+      labels:
+        severity: warning
+        service: guestbook
+      annotations:
+        summary: "High restart rate for Guestbook pod"
+        description: "Guestbook pod {{ $labels.pod }} has restarted more than 3 times in the last hour."
+        
+    - alert: GuestbookDeploymentReplicasMismatch
+      expr: kube_deployment_spec_replicas{deployment=~"guestbook.*", namespace="default"} != kube_deployment_status_replicas_available{deployment=~"guestbook.*", namespace="default"}
+      for: 5m
+      labels:
+        severity: warning
+        service: guestbook
+      annotations:
+        summary: "Guestbook deployment replicas mismatch"
+        description: "Deployment {{ $labels.deployment }} has {{ $value }} replicas available, but {{ $labels.spec_replicas }} were requested."
+        
+    - alert: GuestbookNoPodsRunning
+      expr: count(kube_pod_status_ready{condition="true", pod=~"guestbook.*", namespace="default"}) == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: guestbook
+      annotations:
+        summary: "No Guestbook pods are running"
+        description: "There are no ready Guestbook pods running in the default namespace."
+        
+    - alert: GuestbookVersionMismatch
+      expr: count(count by (label_version) (kube_pod_labels{pod=~"guestbook.*", namespace="default"})) > 1
+      for: 10m
+      labels:
+        severity: info
+        service: guestbook
+      annotations:
+        summary: "Multiple Guestbook versions detected"
+        description: "Multiple versions of Guestbook are running simultaneously. This might indicate a blue-green deployment in progress."
+        
+  - name: guestbook.business.rules
+    rules:
+    - alert: GuestbookServiceUnavailable
+      expr: up{job=~"guestbook-metrics.*"} == 0
+      for: 30s
+      labels:
+        severity: critical
+        service: guestbook
+        type: business
+      annotations:
+        summary: "Guestbook service is unavailable"
+        description: "Guestbook service {{ $labels.job }} is not responding to health checks."
+        
+    - alert: GuestbookLowAvailability
+      expr: (count(kube_pod_status_ready{condition="true", pod=~"guestbook.*", namespace="default"}) / count(kube_pod_info{pod=~"guestbook.*", namespace="default"})) * 100 < 80
+      for: 2m
+      labels:
+        severity: warning
+        service: guestbook
+        type: business
+      annotations:
+        summary: "Guestbook availability is below threshold"
+        description: "Only {{ $value }}% of Guestbook pods are ready, which is below the 80% threshold."
+        
+    - alert: GuestbookResourceExhaustion
+      expr: |
+        (
+          container_memory_usage_bytes{pod=~"guestbook.*", container="guestbook", namespace="default"} / 
+          container_spec_memory_limit_bytes{pod=~"guestbook.*", container="guestbook", namespace="default"}
+        ) * 100 > 90
+      for: 1m
+      labels:
+        severity: critical
+        service: guestbook
+        type: business
+      annotations:
+        summary: "Guestbook pod is near memory limit"
+        description: "Guestbook pod {{ $labels.pod }} is using {{ $value }}% of its memory limit."

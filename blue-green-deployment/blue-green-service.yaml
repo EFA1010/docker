@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: guestbook-bluegreen
+  labels:
+    app: guestbook
+spec:
+  selector:
+    app: guestbook
+    version: blue 
+  ports:
+  - port: 3030
+    targetPort: 3030
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guestbook-blue-direct
+  labels:
+    app: guestbook
+    version: blue
+spec:
+  selector:
+    app: guestbook
+    version: blue
+  ports:
+  - port: 3030
+    targetPort: 3030
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guestbook-green-direct
+  labels:
+    app: guestbook
+    version: green
+spec:
+  selector:
+    app: guestbook
+    version: green
+  ports:
+  - port: 3030
+    targetPort: 3030
+    protocol: TCP
+  type: ClusterIP

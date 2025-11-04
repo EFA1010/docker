@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guestbook-green
+  labels:
+    app: guestbook
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: guestbook
+      version: green
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        version: green
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: guestbook
+            version: green
+      containers:
+      - name: guestbook
+        image: guestbook-app:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3030
+        env:
+        - name: REDIS_HOST
+          value: "redis-simple-service"
+        - name: VERSION
+          value: "green-v2.0"
+        - name: BACKGROUND_COLOR
+          value: "#28a745"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /env
+            port: 3030
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /env
+            port: 3030
+          initialDelaySeconds: 5
+          periodSeconds: 5

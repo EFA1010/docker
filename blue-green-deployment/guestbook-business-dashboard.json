@@ -1,0 +1,509 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Guestbook Business Metrics Dashboard",
+        "tags": [
+            "guestbook",
+            "business",
+            "blue-green",
+            "application"
+        ],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Application Health Overview",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "up{job=~\"guestbook-metrics.*\"}",
+                        "legendFormat": "{{job}} - Health",
+                        "refId": "A"
+                    }
+                ],
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "custom": {
+                            "displayMode": "list",
+                            "orientation": "horizontal"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "0": {
+                                        "text": "DOWN",
+                                        "color": "red"
+                                    },
+                                    "1": {
+                                        "text": "UP",
+                                        "color": "green"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": null
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 1
+                                }
+                            ]
+                        },
+                        "unit": "none"
+                    }
+                }
+            },
+            {
+                "id": 2,
+                "title": "Active Deployment Version",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "label_replace(kube_service_spec_selector{service=\"guestbook-bluegreen\", namespace=\"default\"}, \"version\", \"$1\", \"label_version\", \"(.*)\")",
+                        "legendFormat": "Active Version: {{version}}",
+                        "refId": "A"
+                    }
+                ],
+                "gridPos": {
+                    "h": 6,
+                    "w": 12,
+                    "x": 12,
+                    "y": 0
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "custom": {
+                            "displayMode": "basic"
+                        },
+                        "mappings": [
+                            {
+                                "options": {
+                                    "blue": {
+                                        "text": "BLUE VERSION",
+                                        "color": "blue"
+                                    },
+                                    "green": {
+                                        "text": "GREEN VERSION",
+                                        "color": "green"
+                                    }
+                                },
+                                "type": "value"
+                            }
+                        ],
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "blue",
+                                    "value": null
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 3,
+                "title": "Pod Availability by Version",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook-blue.*\", namespace=\"default\"})",
+                        "legendFormat": "Blue Pods Ready",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook-green.*\", namespace=\"default\"})",
+                        "legendFormat": "Green Pods Ready",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "count(kube_pod_info{pod=~\"guestbook-blue.*\", namespace=\"default\"})",
+                        "legendFormat": "Blue Pods Total",
+                        "refId": "C"
+                    },
+                    {
+                        "expr": "count(kube_pod_info{pod=~\"guestbook-green.*\", namespace=\"default\"})",
+                        "legendFormat": "Green Pods Total",
+                        "refId": "D"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 6
+                },
+                "yAxes": [
+                    {
+                        "label": "Pod Count",
+                        "show": true,
+                        "min": 0
+                    },
+                    {
+                        "show": true
+                    }
+                ],
+                "xAxis": {
+                    "show": true
+                },
+                "legend": {
+                    "show": true,
+                    "alignAsTable": true,
+                    "rightSide": true
+                }
+            },
+            {
+                "id": 4,
+                "title": "Resource Utilization - CPU",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(container_cpu_usage_seconds_total{pod=~\"guestbook-blue.*\", container=\"guestbook\", namespace=\"default\"}[5m]) * 100",
+                        "legendFormat": "Blue - {{pod}}",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "rate(container_cpu_usage_seconds_total{pod=~\"guestbook-green.*\", container=\"guestbook\", namespace=\"default\"}[5m]) * 100",
+                        "legendFormat": "Green - {{pod}}",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 14
+                },
+                "yAxes": [
+                    {
+                        "label": "CPU Usage (%)",
+                        "show": true,
+                        "min": 0
+                    },
+                    {
+                        "show": true
+                    }
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    80
+                                ],
+                                "type": "gt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "avg"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "for": "2m",
+                    "frequency": "30s",
+                    "handler": 1,
+                    "name": "High CPU Usage Alert",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 5,
+                "title": "Resource Utilization - Memory",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "container_memory_usage_bytes{pod=~\"guestbook-blue.*\", container=\"guestbook\", namespace=\"default\"} / 1024 / 1024",
+                        "legendFormat": "Blue - {{pod}}",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "container_memory_usage_bytes{pod=~\"guestbook-green.*\", container=\"guestbook\", namespace=\"default\"} / 1024 / 1024",
+                        "legendFormat": "Green - {{pod}}",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 14
+                },
+                "yAxes": [
+                    {
+                        "label": "Memory Usage (MB)",
+                        "show": true,
+                        "min": 0
+                    },
+                    {
+                        "show": true
+                    }
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    400
+                                ],
+                                "type": "gt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "avg"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "for": "2m",
+                    "frequency": "30s",
+                    "handler": 1,
+                    "name": "High Memory Usage Alert",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 6,
+                "title": "Pod Restart Count",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "increase(kube_pod_container_status_restarts_total{pod=~\"guestbook-blue.*\", namespace=\"default\"}[1h])",
+                        "legendFormat": "Blue - {{pod}}",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "increase(kube_pod_container_status_restarts_total{pod=~\"guestbook-green.*\", namespace=\"default\"}[1h])",
+                        "legendFormat": "Green - {{pod}}",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 22
+                },
+                "yAxes": [
+                    {
+                        "label": "Restart Count",
+                        "show": true,
+                        "min": 0
+                    },
+                    {
+                        "show": true
+                    }
+                ],
+                "alert": {
+                    "conditions": [
+                        {
+                            "evaluator": {
+                                "params": [
+                                    3
+                                ],
+                                "type": "gt"
+                            },
+                            "operator": {
+                                "type": "and"
+                            },
+                            "query": {
+                                "params": [
+                                    "A",
+                                    "5m",
+                                    "now"
+                                ]
+                            },
+                            "reducer": {
+                                "params": [],
+                                "type": "max"
+                            },
+                            "type": "query"
+                        }
+                    ],
+                    "executionErrorState": "alerting",
+                    "for": "1m",
+                    "frequency": "30s",
+                    "handler": 1,
+                    "name": "High Restart Count Alert",
+                    "noDataState": "no_data",
+                    "notifications": []
+                }
+            },
+            {
+                "id": 7,
+                "title": "Deployment Status",
+                "type": "table",
+                "targets": [
+                    {
+                        "expr": "kube_deployment_status_replicas{deployment=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "{{deployment}} - Replicas",
+                        "refId": "A",
+                        "format": "table"
+                    },
+                    {
+                        "expr": "kube_deployment_status_replicas_ready{deployment=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "{{deployment}} - Ready",
+                        "refId": "B",
+                        "format": "table"
+                    },
+                    {
+                        "expr": "kube_deployment_status_replicas_available{deployment=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "{{deployment}} - Available",
+                        "refId": "C",
+                        "format": "table"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 22
+                },
+                "styles": [
+                    {
+                        "alias": "Deployment",
+                        "pattern": "deployment",
+                        "type": "string"
+                    },
+                    {
+                        "alias": "Replicas",
+                        "pattern": "Value #A",
+                        "type": "number"
+                    },
+                    {
+                        "alias": "Ready",
+                        "pattern": "Value #B",
+                        "type": "number"
+                    },
+                    {
+                        "alias": "Available",
+                        "pattern": "Value #C",
+                        "type": "number"
+                    }
+                ]
+            },
+            {
+                "id": 8,
+                "title": "Network Traffic (if available)",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(container_network_receive_bytes_total{pod=~\"guestbook.*\", namespace=\"default\"}[5m])",
+                        "legendFormat": "{{pod}} - RX",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "rate(container_network_transmit_bytes_total{pod=~\"guestbook.*\", namespace=\"default\"}[5m])",
+                        "legendFormat": "{{pod}} - TX",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 30
+                },
+                "yAxes": [
+                    {
+                        "label": "Bytes/sec",
+                        "show": true,
+                        "min": 0
+                    },
+                    {
+                        "show": true
+                    }
+                ]
+            }
+        ],
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "timepicker": {},
+        "templating": {
+            "list": [
+                {
+                    "name": "namespace",
+                    "type": "constant",
+                    "current": {
+                        "value": "default",
+                        "text": "default"
+                    },
+                    "options": [
+                        {
+                            "value": "default",
+                            "text": "default"
+                        }
+                    ]
+                }
+            ]
+        },
+        "annotations": {
+            "list": [
+                {
+                    "name": "Deployments",
+                    "datasource": "Prometheus",
+                    "enable": true,
+                    "expr": "changes(kube_deployment_status_observed_generation{deployment=~\"guestbook.*\", namespace=\"default\"}[5m]) > 0",
+                    "iconColor": "blue",
+                    "name": "Deployment Changes",
+                    "titleFormat": "Deployment Update",
+                    "textFormat": "{{deployment}} updated"
+                }
+            ]
+        },
+        "refresh": "30s",
+        "schemaVersion": 27,
+        "version": 1,
+        "links": [
+            {
+                "title": "Kubernetes Cluster Overview",
+                "url": "/d/kubernetes-cluster/kubernetes-cluster",
+                "type": "dashboards"
+            }
+        ]
+    }
+}

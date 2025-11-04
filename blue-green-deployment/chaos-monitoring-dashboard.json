@@ -1,0 +1,323 @@
+{
+    "dashboard": {
+        "id": null,
+        "title": "Chaos Engineering - Guestbook Resilience Monitoring",
+        "tags": [
+            "chaos",
+            "resilience",
+            "guestbook",
+            "blue-green"
+        ],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+            {
+                "id": 1,
+                "title": "Pod Lifecycle Events",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "increase(kube_pod_container_status_restarts_total{pod=~\"guestbook.*\", namespace=\"default\"}[1m])",
+                        "legendFormat": "{{pod}} - Restarts",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "changes(kube_pod_status_phase{pod=~\"guestbook.*\", namespace=\"default\"}[1m])",
+                        "legendFormat": "{{pod}} - Phase Changes",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0
+                },
+                "yAxes": [
+                    {
+                        "label": "Events/min",
+                        "show": true,
+                        "min": 0
+                    }
+                ],
+                "legend": {
+                    "show": true,
+                    "alignAsTable": true,
+                    "rightSide": true
+                }
+            },
+            {
+                "id": 2,
+                "title": "Real-time Pod Status",
+                "type": "stat",
+                "targets": [
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook.*\", namespace=\"default\"})",
+                        "legendFormat": "Ready Pods",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"false\", pod=~\"guestbook.*\", namespace=\"default\"})",
+                        "legendFormat": "Not Ready Pods",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "count(kube_pod_info{pod=~\"guestbook.*\", namespace=\"default\"})",
+                        "legendFormat": "Total Pods",
+                        "refId": "C"
+                    }
+                ],
+                "gridPos": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "color": {
+                            "mode": "thresholds"
+                        },
+                        "thresholds": {
+                            "steps": [
+                                {
+                                    "color": "red",
+                                    "value": null
+                                },
+                                {
+                                    "color": "yellow",
+                                    "value": 1
+                                },
+                                {
+                                    "color": "green",
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "id": 3,
+                "title": "Recovery Time Analysis",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "time() - kube_pod_start_time{pod=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "{{pod}} - Uptime (seconds)",
+                        "refId": "A"
+                    }
+                ],
+                "gridPos": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 8,
+                    "y": 8
+                },
+                "yAxes": [
+                    {
+                        "label": "Seconds",
+                        "show": true,
+                        "min": 0
+                    }
+                ]
+            },
+            {
+                "id": 4,
+                "title": "Availability Percentage",
+                "type": "singlestat",
+                "targets": [
+                    {
+                        "expr": "(count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook.*\", namespace=\"default\"}) / count(kube_pod_info{pod=~\"guestbook.*\", namespace=\"default\"})) * 100",
+                        "legendFormat": "Availability %",
+                        "refId": "A"
+                    }
+                ],
+                "gridPos": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 16,
+                    "y": 8
+                },
+                "valueName": "current",
+                "format": "percent",
+                "thresholds": "50,80",
+                "colorBackground": true,
+                "colors": [
+                    "rgba(245, 54, 54, 0.9)",
+                    "rgba(237, 129, 40, 0.89)",
+                    "rgba(50, 172, 45, 0.97)"
+                ]
+            },
+            {
+                "id": 5,
+                "title": "Chaos Impact Timeline",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "rate(container_cpu_usage_seconds_total{pod=~\"guestbook.*\", container=\"guestbook\", namespace=\"default\"}[1m]) * 100",
+                        "legendFormat": "{{pod}} - CPU %",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "container_memory_usage_bytes{pod=~\"guestbook.*\", container=\"guestbook\", namespace=\"default\"} / 1024 / 1024",
+                        "legendFormat": "{{pod}} - Memory MB",
+                        "refId": "B"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 14
+                },
+                "yAxes": [
+                    {
+                        "label": "CPU % / Memory MB",
+                        "show": true,
+                        "min": 0
+                    }
+                ],
+                "legend": {
+                    "show": true,
+                    "alignAsTable": true
+                }
+            },
+            {
+                "id": 6,
+                "title": "Blue vs Green Resilience",
+                "type": "graph",
+                "targets": [
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook-blue.*\", namespace=\"default\"})",
+                        "legendFormat": "Blue - Ready Pods",
+                        "refId": "A"
+                    },
+                    {
+                        "expr": "count(kube_pod_status_ready{condition=\"true\", pod=~\"guestbook-green.*\", namespace=\"default\"})",
+                        "legendFormat": "Green - Ready Pods",
+                        "refId": "B"
+                    },
+                    {
+                        "expr": "sum(increase(kube_pod_container_status_restarts_total{pod=~\"guestbook-blue.*\", namespace=\"default\"}[5m]))",
+                        "legendFormat": "Blue - Restarts (5m)",
+                        "refId": "C"
+                    },
+                    {
+                        "expr": "sum(increase(kube_pod_container_status_restarts_total{pod=~\"guestbook-green.*\", namespace=\"default\"}[5m]))",
+                        "legendFormat": "Green - Restarts (5m)",
+                        "refId": "D"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 14
+                },
+                "yAxes": [
+                    {
+                        "label": "Count",
+                        "show": true,
+                        "min": 0
+                    }
+                ]
+            },
+            {
+                "id": 7,
+                "title": "System Recovery Metrics",
+                "type": "table",
+                "targets": [
+                    {
+                        "expr": "kube_pod_info{pod=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "Pod Info",
+                        "refId": "A",
+                        "format": "table"
+                    },
+                    {
+                        "expr": "kube_pod_status_ready{pod=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "Ready Status",
+                        "refId": "B",
+                        "format": "table"
+                    },
+                    {
+                        "expr": "kube_pod_container_status_restarts_total{pod=~\"guestbook.*\", namespace=\"default\"}",
+                        "legendFormat": "Restart Count",
+                        "refId": "C",
+                        "format": "table"
+                    }
+                ],
+                "gridPos": {
+                    "h": 8,
+                    "w": 24,
+                    "x": 0,
+                    "y": 22
+                },
+                "styles": [
+                    {
+                        "alias": "Pod",
+                        "pattern": "pod",
+                        "type": "string"
+                    },
+                    {
+                        "alias": "Version",
+                        "pattern": "version",
+                        "type": "string"
+                    },
+                    {
+                        "alias": "Ready",
+                        "pattern": "Value #B",
+                        "type": "number",
+                        "colorMode": "cell",
+                        "colors": [
+                            "rgba(245, 54, 54, 0.9)",
+                            "rgba(237, 129, 40, 0.89)",
+                            "rgba(50, 172, 45, 0.97)"
+                        ],
+                        "thresholds": [
+                            "0.5",
+                            "0.8"
+                        ]
+                    },
+                    {
+                        "alias": "Restarts",
+                        "pattern": "Value #C",
+                        "type": "number"
+                    }
+                ]
+            }
+        ],
+        "time": {
+            "from": "now-15m",
+            "to": "now"
+        },
+        "timepicker": {},
+        "templating": {
+            "list": []
+        },
+        "annotations": {
+            "list": [
+                {
+                    "name": "Chaos Events",
+                    "datasource": "Prometheus",
+                    "enable": true,
+                    "expr": "changes(kube_pod_container_status_restarts_total{pod=~\"guestbook.*\", namespace=\"default\"}[1m]) > 0",
+                    "iconColor": "red",
+                    "name": "Pod Restarts",
+                    "titleFormat": "Chaos Impact",
+                    "textFormat": "{{pod}} restarted"
+                }
+            ]
+        },
+        "refresh": "5s",
+        "schemaVersion": 27,
+        "version": 1,
+        "links": [
+            {
+                "title": "Business Dashboard",
+                "url": "/d/guestbook-business/guestbook-business-metrics-dashboard",
+                "type": "dashboards"
+            }
+        ]
+    }
+}
