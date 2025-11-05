@@ -34,10 +34,10 @@ spec:
         env:
         - name: REDIS_HOST
           value: "redis-simple-service"
-        - name: BACKGROUND_COLOR
-          value: "#dc3545"  # Red color instead of green
         - name: VERSION
-           value: "green-v3.0"  # New version
+          value: "green-v2.0"
+        - name: BACKGROUND_COLOR
+          value: "#28a745"
         resources:
           requests:
             cpu: 100m
